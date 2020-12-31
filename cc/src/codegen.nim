@@ -16,12 +16,12 @@ proc codegen*(tl: DoublyLinkedList[Token]) =
   while tok.value.kind != TokenKind.Eof:
     if tok.value.equal('+'):
       tok = tok.next
-      echo "  add $", tok.value.getNum ,", %rax"
+      echo "  add $", tok.value.getNum, ", %rax"
       tok = tok.next
       continue
 
     tok = tok.skip('-')
-    echo "  sub $", tok.value.getNum ,", %rax"
+    echo "  sub $", tok.value.getNum, ", %rax"
     tok = tok.next
     continue
 

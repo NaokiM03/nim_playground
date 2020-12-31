@@ -25,9 +25,9 @@ proc errorAt(src: Source, i: int, e: string) =
   quit(QuitFailure)
 
 type TokenKind* = enum
-  Punct     # Punctuators
-  Num       # Numeric literals
-  Eof       # End-of-file markers
+  Punct # Punctuators
+  Num   # Numeric literals
+  Eof   # End-of-file markers
 
 type Token* = tuple [
   str: string,
