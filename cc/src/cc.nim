@@ -1,17 +1,23 @@
 import system
 import os
 import strutils
+import lists
+
+const Punctuators = {'+', '-'}
+
+proc isPunct(c: char): bool =
+  c in Punctuators
 
 proc inc(i: var int, n = 1) =
   i = i + n
 
-proc firstNumStr(str: string): string =
+proc firstNum(str: string): string =
   var s = ""
   var i = 0
-  while str[i].isDigit:
+  while str[i].isDigit():
     s.add(str[i])
-    i.inc
-    if i >= str.len:
+    i.inc()
+    if i >= str.len():
       break
   return s
 
@@ -20,7 +26,7 @@ type Source = object
   cur: int
 
 proc len(src: Source): int =
-  src.code.len
+  src.code.len()
 
 proc peek(src: Source): char =
   src.code[src.cur]
@@ -28,11 +34,13 @@ proc peek(src: Source): char =
 proc isEnd(src: Source): bool =
   src.cur >= src.len()
 
-proc firstNumStr(src: Source): string =
-  src.code[src.cur..src.len-1].firstNumStr
+proc firstNum(src: Source): string =
+  src.code[src.cur..src.len()-1].firstNum()
 
 type TokenKind = enum
-  Num
+  Punct     # Punctuators
+  Num       # Numeric literals
+  Eof       # End-of-file markers
 
 type Token = tuple [
   str: string,
@@ -40,48 +48,77 @@ type Token = tuple [
   pos: int,
   ]
 
-proc getKind(c: char): TokenKind =
-  if c.isDigit:
-    return TokenKind.Num
+proc getNum(t: Token): string =
+  try:
+    discard t.str.parseInt()
+  except ValueError:
+    quit(getCurrentExceptionMsg())
+  return t.str
 
-proc getNextToken(src: var Source): Token =
-  var s = ""
-  var p = src.cur
+proc equal(t: Token, c: char): bool =
+  t.str == $c
 
-  case src.peek.getKind
-  of TokenKind.Num:
-    s = src.firstNumStr
+proc skip(tn: DoublyLinkedNode[Token], c: char): DoublyLinkedNode[Token] =
+  if not tn.value.equal(c):
+    quit("expected: $1" % $c)
+  return tn.next
 
-  src.cur.inc(s.len)
-  return (str: s, kind: TokenKind.Num, pos: p)
+proc tokenize(src: var Source): DoublyLinkedList[Token] =
+  var tokenList = initDoublyLinkedList[Token]()
+
+  while not src.isEnd():
+    if src.peek.isSpaceAscii():
+      src.cur.inc()
+      continue
+
+    if src.peek.isDigit():
+      let s = src.firstNum()
+      let p = src.cur
+      src.cur.inc(s.len())
+      let token: Token = (str: s, kind: TokenKind.Num, pos: p)
+      tokenList.append(token)
+      continue
+
+    if src.peek.isPunct():
+      let c = src.peek()
+      let p = src.cur
+      src.cur.inc()
+      let token: Token = (str: $c, kind: TokenKind.Punct, pos: p)
+      tokenList.append(token)
+      continue
+
+    quit("invalid token", 1)
+
+  let token: Token = (str: "", kind: TokenKind.Eof, pos: src.cur)
+  tokenList.append(token)
+  return tokenList
 
 when isMainModule:
   if paramCount() != 1:
-    quit("invalid number of arguments\n", 1)
+    quit("invalid number of arguments")
+
+  var src = Source(code: $commandLineParams()[0], cur: 0)
+  let tokenList = src.tokenize()
+  var currentToken = tokenList.head
 
   echo "  .globl main"
   echo "main:"
 
-  var src = Source(code: $commandLineParams()[0], cur: 0)
+  echo "  mov $", currentToken.value.getNum(), ", %rax"
 
-  echo "  mov $", src.getNextToken.str, ", %rax"
+  currentToken = currentToken.next
 
-  while not src.isEnd:
-    if src.peek == '+':
-      src.cur.inc
-      var s = src.firstNumStr
-      src.cur.inc(s.len)
-      echo "  add $", s ,", %rax"
+  while currentToken.value.kind != TokenKind.Eof:
+    if currentToken.value.equal('+'):
+      currentToken = currentToken.next
+      echo "  add $", currentToken.value.getNum ,", %rax"
+      currentToken = currentToken.next
       continue
 
-    if src.peek == '-':
-      src.cur.inc
-      var s = src.firstNumStr
-      src.cur.inc(s.len)
-      echo "  sub $", s ,", %rax"
-      continue
-
-    quit("unexpected charactor: $1" % $src.peek, 1)
+    currentToken = currentToken.skip('-')
+    echo "  sub $", currentToken.value.getNum ,", %rax"
+    currentToken = currentToken.next
+    continue
 
   echo "  ret"
 
