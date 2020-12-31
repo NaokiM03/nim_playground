@@ -25,6 +25,9 @@ type Source = object
   code: string
   cur: int
 
+# global variable for error messages
+var src: Source
+
 proc len(src: Source): int =
   src.code.len()
 
@@ -37,6 +40,11 @@ proc isEnd(src: Source): bool =
 proc firstNum(src: Source): string =
   src.code[src.cur..src.len()-1].firstNum()
 
+proc errorAt(src: Source, i: int, e: string) =
+  echo src.code
+  echo ' '.repeat(i), "^ ", e
+  quit(QuitFailure)
+
 type TokenKind = enum
   Punct     # Punctuators
   Num       # Numeric literals
@@ -48,20 +56,20 @@ type Token = tuple [
   pos: int,
   ]
 
-proc getNum(t: Token): string =
-  try:
-    discard t.str.parseInt()
-  except ValueError:
-    quit(getCurrentExceptionMsg())
-  return t.str
-
 proc equal(t: Token, c: char): bool =
   t.str == $c
 
 proc skip(tn: DoublyLinkedNode[Token], c: char): DoublyLinkedNode[Token] =
   if not tn.value.equal(c):
-    quit("expected: $1" % $c)
+    src.errorAt(tn.value.pos, "expected: $1" % $c)
   return tn.next
+
+proc getNum(t: Token): string =
+  try:
+    discard t.str.parseInt()
+  except ValueError:
+    src.errorAt(t.pos, getCurrentExceptionMsg())
+  return t.str
 
 proc tokenize(src: var Source): DoublyLinkedList[Token] =
   var tokenList = initDoublyLinkedList[Token]()
@@ -87,7 +95,7 @@ proc tokenize(src: var Source): DoublyLinkedList[Token] =
       tokenList.append(token)
       continue
 
-    quit("invalid token", 1)
+    src.errorAt(src.cur, "invalid token")
 
   let token: Token = (str: "", kind: TokenKind.Eof, pos: src.cur)
   tokenList.append(token)
@@ -97,7 +105,7 @@ when isMainModule:
   if paramCount() != 1:
     quit("invalid number of arguments")
 
-  var src = Source(code: $commandLineParams()[0], cur: 0)
+  src = Source(code: $commandLineParams()[0], cur: 0)
   let tokenList = src.tokenize()
   var currentToken = tokenList.head
 
@@ -122,4 +130,4 @@ when isMainModule:
 
   echo "  ret"
 
-  quit(0)
+  quit()
