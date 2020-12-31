@@ -1,6 +1,14 @@
 import strutils
 
-const Punctuators = {'+', '-'}
+const Punctuators = {
+  '!', '\'', '#', '$', '%', '&', '\'', '(', ')',
+  '*', '+', ',', '-', '.', '/',
+  ':', ';', '<', '=', '>', '?',
+  '@',
+  '[', '\\', ']', '^', '_',
+  '`',
+  '{', '|', '}'
+  }
 
 proc isPunct*(c: char): bool =
   c in Punctuators
