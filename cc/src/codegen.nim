@@ -14,14 +14,14 @@ proc pop(stk: Stack, s: string) =
 
 proc genExpr(n: Node, stk: Stack) =
   case n.kind:
-  of NodeKind.Num:
+  of NkNum:
     echo "  mov $", $n.value, ", %rax"
     return
-  of Nodekind.Neg:
+  of NkNeg:
     n.lhs.genExpr(stk)
     echo "  neg %rax"
     return
-  of NodeKind.Add, NodeKind.Sub, NodeKind.Mul, NodeKind.Div:
+  of NkAdd, NkSub, NkMul, NkDiv:
     discard
 
   n.rhs.genExpr(stk)
@@ -30,20 +30,20 @@ proc genExpr(n: Node, stk: Stack) =
   stk.pop("%rdi")
 
   case n.kind:
-  of NodeKind.Add:
+  of NkAdd:
     echo "  add %rdi, %rax"
     return
-  of NodeKind.Sub:
+  of NkSub:
     echo "  sub %rdi, %rax"
     return
-  of NodeKind.Mul:
+  of NkMul:
     echo "  imul %rdi, %rax"
     return
-  of NodeKind.Div:
+  of NkDiv:
     echo "  cqo"
     echo "  idiv %rdi"
     return
-  of NodeKind.Num, NodeKind.Neg:
+  of NkNum, NkNeg:
     discard
 
   quit("invalid expression")

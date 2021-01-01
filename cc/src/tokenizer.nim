@@ -25,9 +25,9 @@ proc errorAt(src: Source, e: string) =
   quit(QuitFailure)
 
 type TokenKind* = enum
-  Punct # Punctuators
-  Num   # Numeric literals
-  Eof   # End-of-file markers
+  TkPunct # Punctuators
+  TkNum   # Numeric literals
+  TkEof   # End-of-file markers
 
 type Token* = tuple [
   str: string,
@@ -45,10 +45,10 @@ proc equal*(t: Token, c: char): bool =
   t.str == $c
 
 proc isNum*(t: Token): bool =
-  t.kind == TokenKind.Num
+  t.kind == TkNum
 
 proc isEof*(t: Token): bool =
-  t.kind == TokenKind.Eof
+  t.kind == TkEof
 
 proc skip*(tn: DoublyLinkedNode[Token], c: char): DoublyLinkedNode[Token] =
   if not tn.value.equal(c):
@@ -74,7 +74,7 @@ proc tokenize*(src: Source): DoublyLinkedList[Token] =
       let s = src.firstNum()
       let p = src.cur
       src.cur.inc(s.len())
-      let token: Token = (str: s, kind: TokenKind.Num, code: src.code, pos: p)
+      let token: Token = (str: s, kind: TkNum, code: src.code, pos: p)
       tokenList.append(token)
       continue
 
@@ -82,12 +82,12 @@ proc tokenize*(src: Source): DoublyLinkedList[Token] =
       let c = src.peek()
       let p = src.cur
       src.cur.inc()
-      let token: Token = (str: $c, kind: TokenKind.Punct, code: src.code, pos: p)
+      let token: Token = (str: $c, kind: TkPunct, code: src.code, pos: p)
       tokenList.append(token)
       continue
 
     src.errorAt("invalid token")
 
-  let token: Token = (str: "", kind: TokenKind.Eof, code: src.code, pos: src.cur)
+  let token: Token = (str: "", kind: TkEof, code: src.code, pos: src.cur)
   tokenList.append(token)
   return tokenList

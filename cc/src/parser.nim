@@ -5,16 +5,16 @@ import tokenizer
 
 type
   NodeKind* = enum
-    Add # +
-    Sub # -
-    Mul # *
-    Div # /
-    Neg # unary -
-    Num # Integer
+    NkAdd # +
+    NkSub # -
+    NkMul # *
+    NkDiv # /
+    NkNeg # unary -
+    NkNum # Integer
   Node* = ref object
     case kind*: NodeKind
-    of Num: value*: int
-    of Add, Sub, Mul, Div, Neg: lhs*, rhs*: Node
+    of NkNum: value*: int
+    of NkAdd, NkSub, NkMul, NkDiv, NkNeg: lhs*, rhs*: Node
 
 proc newNode(kind: NodeKind): Node =
   Node(kind: kind)
@@ -31,7 +31,7 @@ proc newBinary(kind: NodeKind, lhs: Node, rhs: Node): Node =
   return n
 
 proc newNum(i: int): Node =
-  var n = Num.newNode()
+  var n = NkNum.newNode()
   n.value = i
   return n
 
@@ -46,12 +46,12 @@ proc expr(tn: var DoublyLinkedNode[Token]): Node =
   while true:
     if tn.value.equal('+'):
       tn = tn.next
-      n = Add.newBinary(n, tn.mul())
+      n = NkAdd.newBinary(n, tn.mul())
       continue
 
     if tn.value.equal('-'):
       tn = tn.next
-      n = Sub.newBinary(n, tn.mul())
+      n = NkSub.newBinary(n, tn.mul())
       continue
 
     return n
@@ -62,12 +62,12 @@ proc mul(tn: var DoublyLinkedNode[Token]): Node =
   while true:
     if tn.value.equal('*'):
       tn = tn.next
-      n = Mul.newBinary(n, tn.unaray())
+      n = NkMul.newBinary(n, tn.unaray())
       continue
 
     if tn.value.equal('/'):
       tn = tn.next
-      n = Div.newBinary(n, tn.unaray())
+      n = NkDiv.newBinary(n, tn.unaray())
       continue
 
     return n
@@ -79,7 +79,7 @@ proc unaray(tn: var DoublyLinkedNode[Token]): Node =
 
   if tn.value.equal('-'):
     tn = tn.next
-    return NodeKind.Neg.newUnary(tn.unaray())
+    return NkNeg.newUnary(tn.unaray())
 
   return tn.primary()
 
