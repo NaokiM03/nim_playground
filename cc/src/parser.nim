@@ -9,20 +9,27 @@ type
     Sub # -
     Mul # *
     Div # /
+    Neg # unary -
     Num # Integer
   Node* = ref object
     case kind*: NodeKind
     of Num: value*: int
-    of Add, Sub, Mul, Div: lhs*, rhs*: Node
+    of Add, Sub, Mul, Div, Neg: lhs*, rhs*: Node
 
 proc newNode(kind: NodeKind): Node =
   Node(kind: kind)
+
+proc newUnary(kind: NodeKind, expr: Node): Node =
+  var n = kind.newNode()
+  n.lhs = expr
+  return n
 
 proc newBinary(kind: NodeKind, lhs: Node, rhs: Node): Node =
   var n = kind.newNode()
   n.lhs = lhs
   n.rhs = rhs
   return n
+
 proc newNum(i: int): Node =
   var n = Num.newNode()
   n.value = i
@@ -30,6 +37,7 @@ proc newNum(i: int): Node =
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node
 proc mul(tn: var DoublyLinkedNode[Token]): Node
+proc unaray(tn: var DoublyLinkedNode[Token]): Node
 proc primary(tn: var DoublyLinkedNode[Token]): Node
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node =
@@ -49,20 +57,31 @@ proc expr(tn: var DoublyLinkedNode[Token]): Node =
     return n
 
 proc mul(tn: var DoublyLinkedNode[Token]): Node =
-  var n = primary(tn)
+  var n = tn.unaray()
 
   while true:
     if tn.value.equal('*'):
       tn = tn.next
-      n = Mul.newBinary(n, tn.primary())
+      n = Mul.newBinary(n, tn.unaray())
       continue
 
     if tn.value.equal('/'):
       tn = tn.next
-      n = Div.newBinary(n, tn.primary())
+      n = Div.newBinary(n, tn.unaray())
       continue
 
     return n
+
+proc unaray(tn: var DoublyLinkedNode[Token]): Node =
+  if tn.value.equal('+'):
+    tn = tn.next
+    return tn.unaray()
+
+  if tn.value.equal('-'):
+    tn = tn.next
+    return NodeKind.Neg.newUnary(tn.unaray())
+
+  return tn.primary()
 
 proc primary(tn: var DoublyLinkedNode[Token]): Node =
   if tn.value.equal('('):

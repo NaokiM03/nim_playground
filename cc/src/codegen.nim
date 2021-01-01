@@ -13,9 +13,16 @@ proc pop(stk: Stack, s: string) =
   stk.depth.dec()
 
 proc genExpr(n: Node, stk: Stack) =
-  if n.kind == NodeKind.Num:
+  case n.kind:
+  of NodeKind.Num:
     echo "  mov $", $n.value, ", %rax"
     return
+  of Nodekind.Neg:
+    n.lhs.genExpr(stk)
+    echo "  neg %rax"
+    return
+  of NodeKind.Add, NodeKind.Sub, NodeKind.Mul, NodeKind.Div:
+    discard
 
   n.rhs.genExpr(stk)
   stk.push()
@@ -36,7 +43,7 @@ proc genExpr(n: Node, stk: Stack) =
     echo "  cqo"
     echo "  idiv %rdi"
     return
-  of NodeKind.Num:
+  of NodeKind.Num, NodeKind.Neg:
     discard
 
   quit("invalid expression")
