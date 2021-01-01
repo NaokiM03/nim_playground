@@ -19,9 +19,9 @@ proc isEnd(src: Source): bool =
 proc firstNum(src: Source): string =
   src.code[src.cur..src.len()-1].firstNum()
 
-proc errorAt(src: Source, i: int, e: string) =
+proc errorAt(src: Source, e: string) =
   echo src.code
-  echo ' '.repeat(i), "^ ", e
+  echo ' '.repeat(src.cur), "^ ", e
   quit(QuitFailure)
 
 type TokenKind* = enum
@@ -36,24 +36,30 @@ type Token* = tuple [
   pos: int,
   ]
 
-proc errorAt(t: Token, i: int, e: string) =
+proc errorAt*(t: Token, e: string) =
   echo t.code
-  echo ' '.repeat(i), "^ ", e
+  echo ' '.repeat(t.pos), "^ ", e
   quit(QuitFailure)
 
 proc equal*(t: Token, c: char): bool =
   t.str == $c
 
+proc isNum*(t: Token): bool =
+  t.kind == TokenKind.Num
+
+proc isEof*(t: Token): bool =
+  t.kind == TokenKind.Eof
+
 proc skip*(tn: DoublyLinkedNode[Token], c: char): DoublyLinkedNode[Token] =
   if not tn.value.equal(c):
-    tn.value.errorAt(tn.value.pos, "expected: $1" % $c)
+    tn.value.errorAt("expected: $1" % $c)
   return tn.next
 
 proc getNum*(t: Token): string =
   try:
     discard t.str.parseInt()
   except ValueError:
-    t.errorAt(t.pos, getCurrentExceptionMsg())
+    t.errorAt(getCurrentExceptionMsg())
   return t.str
 
 proc tokenize*(src: Source): DoublyLinkedList[Token] =
@@ -80,7 +86,7 @@ proc tokenize*(src: Source): DoublyLinkedList[Token] =
       tokenList.append(token)
       continue
 
-    src.errorAt(src.cur, "invalid token")
+    src.errorAt("invalid token")
 
   let token: Token = (str: "", kind: TokenKind.Eof, code: src.code, pos: src.cur)
   tokenList.append(token)

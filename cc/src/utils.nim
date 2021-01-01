@@ -13,8 +13,11 @@ const Punctuators = {
 proc isPunct*(c: char): bool =
   c in Punctuators
 
-proc inc*(i: var int, n = 1) =
+proc inc*(i: var int, n: int = 1) =
   i = i + n
+
+proc dec*(i: var int, n: int = 1) =
+  i = i - n
 
 proc firstNum*(str: string): string =
   var s = ""
