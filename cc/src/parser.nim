@@ -2,6 +2,7 @@ import lists
 import strutils
 
 import tokenizer
+import utils
 
 type
   NodeKind* = enum
@@ -14,7 +15,9 @@ type
     NkNe        # !=
     NkLt        # <
     NkLe        # <=
+    NkAssign    # =
     NkExprStmt  # Expression statement
+    NkVar       # Variable
     NkNum       # Integer
   Node* = ref object
     case kind*: NodeKind
@@ -22,8 +25,11 @@ type
       value*: int
     of NkAdd, NkSub, NkMul, NkDiv, NkNeg,
         NkEq, NkNe, NkLt, NkLe,
+        NkAssign,
         NkExprStmt:
       lhs*, rhs*: Node
+    of NkVar:
+      name*: char
 
 proc newNode(kind: NodeKind): Node =
   Node(kind: kind)
@@ -44,8 +50,14 @@ proc newNum(i: int): Node =
   n.value = i
   return n
 
+proc newVarNode(name: char): Node =
+  var n = NkVar.newNode()
+  n.name = name
+  return n
+
 proc expr(tn: var DoublyLinkedNode[Token]): Node
 proc exprStmt(tn: var DoublyLinkedNode[Token]): Node
+proc assign(tn: var DoublyLinkedNode[Token]): Node
 proc equality(tn: var DoublyLinkedNode[Token]): Node
 proc relational(tn: var DoublyLinkedNode[Token]): Node
 proc add(tn: var DoublyLinkedNode[Token]): Node
@@ -62,7 +74,16 @@ proc exprStmt(tn: var DoublyLinkedNode[Token]): Node =
   return n
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node =
-  tn.equality()
+  tn.assign()
+
+proc assign(tn: var DoublyLinkedNode[Token]): Node =
+  var n = tn.equality()
+
+  if tn.value.equal('='):
+    tn = tn.next
+    n = NkAssign.newBinary(n, tn.assign())
+  
+  return n
 
 proc equality(tn: var DoublyLinkedNode[Token]): Node =
   var n = tn.relational()
@@ -154,6 +175,11 @@ proc primary(tn: var DoublyLinkedNode[Token]): Node =
     tn = tn.next
     let n = tn.expr()
     tn = tn.skip(')')
+    return n
+
+  if tn.value.kind == TkIdent:
+    let n = tn.value.str.toChar().newVarNode()
+    tn = tn.next
     return n
 
   if tn.value.isNum():

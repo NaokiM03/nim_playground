@@ -2,11 +2,20 @@ import strutils
 import sequtils
 import sugar
 
-proc slice(s: string, idx: int = 0, rng: int = 1): string =
+proc slice*(s: string, idx: int = 0, rng: int = 1): string =
   s[idx..idx+rng-1]
 
 proc first(s: string): char =
   s[0]
+
+proc toChar*(s: string): char =
+  if not s.len() == 1:
+    raise
+
+  return s.first()
+
+proc toInt*(c: char): int =
+  int(c)
 
 const Punctuators =
   {

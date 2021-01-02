@@ -1,4 +1,5 @@
 import lists
+import strutils
 
 import parser
 import utils
@@ -14,6 +15,14 @@ proc pop(stk: Stack, s: string) =
   echo "  pop ", s
   stk.depth.dec()
 
+proc genAddr(n: Node) =
+  if n.kind == NkVar:
+    let offset = (n.name.toInt() - 'a'.toInt() + 1) * 8
+    echo "  lea ", -offset, "(%rbp), %rax"
+    return
+
+  quit("not an lvalue")
+
 proc genExpr(n: Node, stk: Stack) =
   case n.kind:
   of NkNum:
@@ -22,6 +31,17 @@ proc genExpr(n: Node, stk: Stack) =
   of NkNeg:
     n.lhs.genExpr(stk)
     echo "  neg %rax"
+    return
+  of NkVar:
+    n.genAddr()
+    echo "  mov (%rax), %rax"
+    return
+  of NkAssign:
+    n.lhs.genAddr()
+    stk.push()
+    n.rhs.genExpr(stk)
+    stk.pop("%rdi")
+    echo "  mov %rax, (%rdi)"
     return
   else:
     discard
@@ -65,7 +85,7 @@ proc genExpr(n: Node, stk: Stack) =
   else:
     discard
 
-  quit("invalid expression")
+  quit("invalid expression. NodeKind: $1" % $n.kind)
 
 proc genStmt(n: Node, stk: Stack) =
   if n.kind == NkExprStmt:
@@ -78,6 +98,10 @@ proc codeGen*(nl: SinglyLinkedList[Node]) =
   echo "  .globl main"
   echo "main:"
 
+  echo "  push %rbp"
+  echo "  mov %rsp, %rbp"
+  echo "  sub $208, %rsp"
+
   var stk = Stack()
 
   for n in nl:
@@ -85,4 +109,6 @@ proc codeGen*(nl: SinglyLinkedList[Node]) =
     if not stk.depth == 0:
       quit("stack error")
 
+  echo "  mov %rbp, %rsp"
+  echo "  pop %rbp"
   echo "  ret"

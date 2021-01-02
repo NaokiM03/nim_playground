@@ -31,6 +31,7 @@ proc errorAt(src: Source, e: string) =
   quit(QuitFailure)
 
 type TokenKind* = enum
+  TkIdent # Identifiers
   TkPunct # Punctuators
   TkNum   # Numeric literals
   TkEof   # End-of-file markers
@@ -75,11 +76,11 @@ proc tokenize*(src: Source): DoublyLinkedList[Token] =
   var tokenList = initDoublyLinkedList[Token]()
 
   while not src.isEnd():
-    if src.peek.isSpaceAscii():
+    if src.peek().isSpaceAscii():
       src.cur.inc()
       continue
 
-    if src.peek.isDigit():
+    if src.peek().isDigit():
       let s = src.firstNum()
       let p = src.cur
       src.cur.inc(s.len())
@@ -87,7 +88,15 @@ proc tokenize*(src: Source): DoublyLinkedList[Token] =
       tokenList.append(token)
       continue
 
-    if src.peek.isPunct():
+    if src.peek().isAlphaAscii():
+      let s = src.restCode.slice()
+      let p = src.cur
+      src.cur.inc(s.len())
+      let token: Token = (str: s, kind: TkIdent, code: src.code, pos: p)
+      tokenList.append(token)
+      continue
+
+    if src.peek().isPunct():
       let s = src.firstPunct()
       let p = src.cur
       src.cur.inc(s.len())
