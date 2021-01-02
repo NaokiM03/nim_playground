@@ -101,6 +101,6 @@ proc parse*(tn: var DoublyLinkedNode[Token]): Node =
   let n = tn.expr
 
   if not tn.value.isEof():
-    quit("extra token")
+    quit("extra token. String: $1" % tn.value.str)
 
   return n
