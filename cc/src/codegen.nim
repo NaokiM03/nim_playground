@@ -21,7 +21,7 @@ proc genExpr(n: Node, stk: Stack) =
     n.lhs.genExpr(stk)
     echo "  neg %rax"
     return
-  of NkAdd, NkSub, NkMul, NkDiv:
+  else:
     discard
 
   n.rhs.genExpr(stk)
@@ -43,7 +43,24 @@ proc genExpr(n: Node, stk: Stack) =
     echo "  cqo"
     echo "  idiv %rdi"
     return
-  of NkNum, NkNeg:
+  of NkEq, NkNe, NkLt, NkLe:
+    echo "  cmp %rdi, %rax"
+
+    case n.kind:
+    of NkEq:
+      echo "  sete %al"
+    of NkNe:
+      echo "  setne %al"
+    of NkLt:
+      echo "  setl %al"
+    of NkLe:
+      echo "  setle %al"
+    else:
+      discard
+
+    echo "  movzb %al, %rax"
+    return
+  else:
     discard
 
   quit("invalid expression")

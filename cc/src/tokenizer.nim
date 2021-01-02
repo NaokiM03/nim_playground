@@ -16,8 +16,14 @@ proc peek(src: Source): char =
 proc isEnd(src: Source): bool =
   src.cur >= src.len()
 
+proc restCode(src: Source): string =
+  src.code[src.cur..src.len()-1]
+
 proc firstNum(src: Source): string =
-  src.code[src.cur..src.len()-1].firstNum()
+  src.restCode().firstNum()
+
+proc firstPunct(src: Source): string =
+  src.restCode().firstPunct()
 
 proc errorAt(src: Source, e: string) =
   echo src.code
@@ -43,6 +49,9 @@ proc errorAt*(t: Token, e: string) =
 
 proc equal*(t: Token, c: char): bool =
   t.str == $c
+
+proc equal*(t: Token, s: string): bool =
+  t.str == s
 
 proc isNum*(t: Token): bool =
   t.kind == TkNum
@@ -79,10 +88,10 @@ proc tokenize*(src: Source): DoublyLinkedList[Token] =
       continue
 
     if src.peek.isPunct():
-      let c = src.peek()
+      let s = src.firstPunct()
       let p = src.cur
-      src.cur.inc()
-      let token: Token = (str: $c, kind: TkPunct, code: src.code, pos: p)
+      src.cur.inc(s.len())
+      let token: Token = (str: s, kind: TkPunct, code: src.code, pos: p)
       tokenList.append(token)
       continue
 

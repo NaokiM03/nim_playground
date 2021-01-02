@@ -10,11 +10,18 @@ type
     NkMul # *
     NkDiv # /
     NkNeg # unary -
+    NkEq  # ==
+    NkNe  # !=
+    NkLt  # <
+    NkLe  # <=
     NkNum # Integer
   Node* = ref object
     case kind*: NodeKind
-    of NkNum: value*: int
-    of NkAdd, NkSub, NkMul, NkDiv, NkNeg: lhs*, rhs*: Node
+    of NkNum:
+      value*: int
+    of NkAdd, NkSub, NkMul, NkDiv, NkNeg,
+        NkEq, NkNe, NkLt, NkLe:
+      lhs*, rhs*: Node
 
 proc newNode(kind: NodeKind): Node =
   Node(kind: kind)
@@ -36,12 +43,60 @@ proc newNum(i: int): Node =
   return n
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node
+proc equality(tn: var DoublyLinkedNode[Token]): Node
+proc relational(tn: var DoublyLinkedNode[Token]): Node
+proc add(tn: var DoublyLinkedNode[Token]): Node
 proc mul(tn: var DoublyLinkedNode[Token]): Node
 proc unaray(tn: var DoublyLinkedNode[Token]): Node
 proc primary(tn: var DoublyLinkedNode[Token]): Node
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node =
-  var n = mul(tn)
+  tn.equality()
+
+proc equality(tn: var DoublyLinkedNode[Token]): Node =
+  var n = tn.relational()
+
+  while true:
+    if tn.value.equal("=="):
+      tn = tn.next
+      n = NkEq.newBinary(n, tn.relational())
+      continue
+
+    if tn.value.equal("!="):
+      tn = tn.next
+      n = NkNe.newBinary(n, tn.relational())
+      continue
+
+    return n
+
+proc relational(tn: var DoublyLinkedNode[Token]): Node =
+  var n = tn.add()
+
+  while true:
+    if tn.value.equal("<"):
+      tn = tn.next
+      n = NkLt.newBinary(n, tn.add())
+      continue
+
+    if tn.value.equal("<="):
+      tn = tn.next
+      n = NkLe.newBinary(n, tn.add())
+      continue
+
+    if tn.value.equal(">"):
+      tn = tn.next
+      n = NkLt.newBinary(tn.add(), n)
+      continue
+
+    if tn.value.equal(">="):
+      tn = tn.next
+      n = NkLe.newBinary(tn.add(), n)
+      continue
+
+    return n
+
+proc add(tn: var DoublyLinkedNode[Token]): Node =
+  var n = tn.mul()
 
   while true:
     if tn.value.equal('+'):
