@@ -5,22 +5,24 @@ import tokenizer
 
 type
   NodeKind* = enum
-    NkAdd # +
-    NkSub # -
-    NkMul # *
-    NkDiv # /
-    NkNeg # unary -
-    NkEq  # ==
-    NkNe  # !=
-    NkLt  # <
-    NkLe  # <=
-    NkNum # Integer
+    NkAdd       # +
+    NkSub       # -
+    NkMul       # *
+    NkDiv       # /
+    NkNeg       # unary -
+    NkEq        # ==
+    NkNe        # !=
+    NkLt        # <
+    NkLe        # <=
+    NkExprStmt  # Expression statement
+    NkNum       # Integer
   Node* = ref object
     case kind*: NodeKind
     of NkNum:
       value*: int
     of NkAdd, NkSub, NkMul, NkDiv, NkNeg,
-        NkEq, NkNe, NkLt, NkLe:
+        NkEq, NkNe, NkLt, NkLe,
+        NkExprStmt:
       lhs*, rhs*: Node
 
 proc newNode(kind: NodeKind): Node =
@@ -43,12 +45,21 @@ proc newNum(i: int): Node =
   return n
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node
+proc exprStmt(tn: var DoublyLinkedNode[Token]): Node
 proc equality(tn: var DoublyLinkedNode[Token]): Node
 proc relational(tn: var DoublyLinkedNode[Token]): Node
 proc add(tn: var DoublyLinkedNode[Token]): Node
 proc mul(tn: var DoublyLinkedNode[Token]): Node
 proc unaray(tn: var DoublyLinkedNode[Token]): Node
 proc primary(tn: var DoublyLinkedNode[Token]): Node
+
+proc stmt(tn: var DoublyLinkedNode[Token]): Node =
+  tn.exprStmt()
+
+proc exprStmt(tn: var DoublyLinkedNode[Token]): Node =
+  let n = NkExprStmt.newUnary(tn.expr())
+  tn = tn.skip(';')
+  return n
 
 proc expr(tn: var DoublyLinkedNode[Token]): Node =
   tn.equality()
@@ -152,10 +163,10 @@ proc primary(tn: var DoublyLinkedNode[Token]): Node =
 
   tn.value.errorAt("expected an expression")
 
-proc parse*(tn: var DoublyLinkedNode[Token]): Node =
-  let n = tn.expr
+proc parse*(tn: var DoublyLinkedNode[Token]): SinglyLinkedList[Node] =
+  var nodeList = initSinglyLinkedList[Node]()
 
-  if not tn.value.isEof():
-    quit("extra token. String: $1" % tn.value.str)
+  while not tn.value.isEof():
+    nodeList.append(tn.stmt())
 
-  return n
+  return nodeList

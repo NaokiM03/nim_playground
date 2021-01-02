@@ -1,3 +1,5 @@
+import lists
+
 import parser
 import utils
 
@@ -65,14 +67,22 @@ proc genExpr(n: Node, stk: Stack) =
 
   quit("invalid expression")
 
-proc codeGen*(n: Node) =
+proc genStmt(n: Node, stk: Stack) =
+  if n.kind == NkExprStmt:
+    n.lhs.genExpr(stk)
+    return
+
+  quit("invalid statement")
+
+proc codeGen*(nl: SinglyLinkedList[Node]) =
   echo "  .globl main"
   echo "main:"
 
   var stk = Stack()
-  n.genExpr(stk)
+
+  for n in nl:
+    n.genStmt(stk)
+    if not stk.depth == 0:
+      quit("stack error")
 
   echo "  ret"
-
-  if not stk.depth == 0:
-    quit("stack error")
